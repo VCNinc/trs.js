@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 
 use crate::{
-    key::{PrivateKey, PublicKey, public_to_ascii, ascii_to_public},
+    key::{PrivateKey, PublicKey, ascii_to_public},
     prelude::*,
 };
 
@@ -79,11 +79,6 @@ impl Tag {
     fn hash2(&self) -> Blake2b {
         let h = Blake2b::with_params(b"", b"", DOMAIN_STR2);
         self.hash_self(h)
-    }
-
-    fn sep(&self) -> (Vec<JsValue>, Vec<u8>) {
-        let vec: Vec<JsValue> = self.pubkeys.iter().map(|key| public_to_ascii(key)).collect::<Vec<JsValue>>();
-        return (vec, self.issue.to_vec());
     }
 }
 
@@ -292,26 +287,29 @@ pub fn sign(
     }
 }
 
-pub fn verify(msg: &[u8], tag: &Tag, sig: &Signature) -> bool {
-    let (pki, issue) = tag.sep();
-    return verify_signature(msg, pki, issue, sig);
-}
-
-/// Verify a message against a given signature under a given tag. See `sign` for example usage.
 #[wasm_bindgen]
 pub fn verify_signature(
-    msg: &[u8],
+    msg: String,
     pki: Vec<JsValue>,
-    issue: Vec<u8>,
+    issue: String,
     sig: &Signature
 ) -> bool {
     let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
 
     let tag = Tag {
         pubkeys: pubkeys,
-        issue: issue
+        issue: issue.as_bytes().to_vec()
     };
 
+    return verify(msg.as_bytes(), &tag, sig);
+}
+
+/// Verify a message against a given signature under a given tag. See `sign` for example usage.
+pub fn verify(
+    msg: &[u8],
+    tag: &Tag,
+    sig: &Signature
+) -> bool {
     let c = &sig.cs;
     let z = &sig.zs;
     let aa1 = sig.aa1; // A₁
