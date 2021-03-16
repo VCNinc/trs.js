@@ -24,21 +24,21 @@ pub enum Trace<'a> {
 
 #[wasm_bindgen]
 pub fn trace_signature(
-    msg1: &[u8],
+    msg1: String,
     sig1: &Signature,
-    msg2: &[u8],
+    msg2: String,
     sig2: &Signature,
     pki: Vec<JsValue>,
-    issue: Vec<u8>,
+    issue: String,
 ) -> String {
     let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
 
     let tag = Tag {
         pubkeys: pubkeys,
-        issue: issue
+        issue: issue.as_bytes().to_vec()
     };
 
-    let tag = trace(msg1, sig1, msg2, sig2, &tag);
+    let tag = trace(msg1.as_bytes(), sig1, msg2.as_bytes(), sig2, &tag);
 
     match tag {
         Trace::Indep => String::from("indep"),
