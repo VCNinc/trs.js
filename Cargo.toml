@@ -1,28 +1,28 @@
 [package]
-name = "fujisaki_ringsig"
-version = "0.1.1"
-authors = ["Michael Rosenberg <micro@fastmail.com>"]
-license = "MIT OR Apache-2.0"
+name = "trs-js"
+version = "0.1.0"
+authors = ["Vivek Nair <vivek@nair.me>"]
+license = "MIT"
 edition = "2018"
-
-description = "Fujisaki-Suzuki Ring Signatures in Rust"
+description = "Traceable Ring Signatures (TRS) for JavaScript & Node.js"
 keywords = ["ring", "signature", "crypto", "cryptography"]
 categories = ["cryptography", "no-std"]
-repository = "https://github.com/rozbb/fujisaki-ringsig"
-documentation = "https://docs.rs/fujisaki_ringsig"
+repository = "https://github.com/VCNinc/trs.js"
+documentation = "https://github.com/VCNinc/trs.js"
 
 [features]
 default = ["std"]
 std = ["blake2/std", "curve25519-dalek/std", "digest/std"]
+
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]
 blake2 = { version = "0.9", default-features = false }
 curve25519-dalek = { version = "3.0", default-features = false, features = ["u64_backend"] }
 digest = { version = "0.9", default-features = false }
 generic-array = "0.9"
-# This isn't the latest version of rand_core, but it's what Dalek is pinned to right now
 rand_core  = { version = "0.5", default-features = false }
-
-[dev-dependencies]
-# This isn't the latest version of rand, but it's the latest that uses rand_core v0.5
+wasm-bindgen = "0.2"
 rand = "0.7"
+base64 = "0.13"
