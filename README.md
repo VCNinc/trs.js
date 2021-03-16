@@ -17,7 +17,7 @@ npm i --save trs-js
 
 Require the package in your code:
 ```
-const trs = require('./pkg/trs_js.js')
+const trs = require('trs-js')
 ```
 
 Call the functions like so:
