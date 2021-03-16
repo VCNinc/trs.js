@@ -4,7 +4,6 @@ console.log('generating key pairs...')
 const kp1 = trs.gen_keypair()
 const pk1 = kp1.public
 const sk1 = kp1.private
-
 const kp2 = trs.gen_keypair()
 const pk2 = kp2.public
 const sk2 = kp2.private
@@ -15,9 +14,8 @@ const ak2 = trs.public_to_ascii(pk2)
 const pki = [ak1, ak2]
 console.log(pki)
 
-const issue = "test";
-
 console.log('generating signatures...')
+const issue = "test";
 const sig1 = trs.generate_signature("msg1", pki, issue, sk1)
 const sig2 = trs.generate_signature("msg2", pki, issue, sk2)
 const sig3 = trs.generate_signature("msg3", pki, issue, sk2)
@@ -46,7 +44,6 @@ console.log([f1, f2, f3])
 console.log('tracing independent signatures...')
 const t1 = trs.trace_signature("msg1", s1, "msg2", s2, pki, issue);
 console.log([t1]);
-
 
 console.log('tracing revealed signatures...')
 const t2 = trs.trace_signature("msg2", s2, "msg3", s3, pki, issue);
