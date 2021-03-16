@@ -1,19 +1,18 @@
-# fujisaki-ringsig
-[![Version](https://img.shields.io/crates/v/fujisaki_ringsig.svg)](https://crates.io/crates/fujisaki_ringsig)
-[![Docs](https://docs.rs/fujisaki_ringsig/badge.svg)](https://docs.rs/fujisaki_ringsig)
-[![CI](https://github.com/rozbb/fujisaki-ringsig/workflows/CI/badge.svg)](https://github.com/rozbb/fujisaki-ringsig/actions)
+# trs.js
 
-This is an implementation of the [Traceable Ring Signature algorithm by Eiichiro Fujisaki and Koutarou Suzuki](https://eprint.iacr.org/2006/389.pdf). This crate uses the `curve25519-dalek` library. In particular, it uses the `ristretto` module for its elligator implementation.
+A port of [rozbb/fujisaki-ringsig](https://github.com/rozbb/fujisaki-ringsig) to WebAssembly for use in browsers and Node.js.
+
+Contains an implementation of the of the [Traceable Ring Signature algorithm by Eiichiro Fujisaki and Koutarou Suzuki](https://eprint.iacr.org/2006/389.pdf).
+
+## Authors
+
+The original rust code is by Michael Rosenberg: [rozbb](https://github.com/rozbb).
+Ported to WebAssembly by Vivek Nair: [VCNinc](https://github.com/VCNinc).
 
 ## License
 
-Licensed under either of
-
- * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE))
- * MIT license ([LICENSE-MIT](LICENSE-MIT))
-
-at your choice.
+Licensed under the MIT license ([LICENSE-MIT](LICENSE-MIT)).
 
 ## Warning
 
-This crate should not be used in any serious contexts. It is not secure.
+As with the original Rust crate, this package should not be used in production code. It contains experimental cryptography and uses small (insecure) keys.
