@@ -109,13 +109,21 @@ pub(crate) fn compute_sigma(
     (aa0, sigma)
 }
 
-pub fn sign(
-    msg: &[u8],
-    tag: &Tag,
+#[wasm_bindgen]
+pub fn generate_signature(
+    msg: String,
+    pki: Vec<JsValue>,
+    issue: String,
     privkey: &PrivateKey,
 ) -> Signature {
-    let (pki, issue) = tag.sep();
-    return generate_signature(msg, pki, issue, privkey);
+    let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
+
+    let tag = Tag {
+        pubkeys: pubkeys,
+        issue: issue.as_bytes().to_vec()
+    };
+
+    return sign(msg.as_bytes(), &tag, privkey);
 }
 
 /// Sign a message under the given tag with the given private key.
@@ -143,21 +151,12 @@ pub fn sign(
 /// let sig = sign(&mut rng, &*msg, &tag, &my_privkey);
 /// assert!(verify(&*msg, &tag, &sig));
 /// # }
-#[wasm_bindgen]
-pub fn generate_signature(
+pub fn sign(
     msg: &[u8],
-    pki: Vec<JsValue>,
-    issue: Vec<u8>,
+    tag: &Tag,
     privkey: &PrivateKey,
 ) -> Signature {
     let mut rng = rand::thread_rng();
-
-    let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
-
-    let tag = Tag {
-        pubkeys: pubkeys,
-        issue: issue
-    };
 
     // Make sure the ring size isn't bigger than a u64
     let ring_size = tag.pubkeys.len();
