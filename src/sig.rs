@@ -1,4 +1,5 @@
 use wasm_bindgen::prelude::*;
+use serde::{Serialize, Deserialize};
 
 use crate::{
     key::{PrivateKey, PublicKey, public_to_ascii, ascii_to_public},
@@ -20,11 +21,25 @@ static DOMAIN_STR2: &'static [u8] = b"rust-ringsig-2";
 /// A Fujisaki signature. The size of `Signature` scales proportionally with the number of public
 /// keys in the ring.
 #[wasm_bindgen]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
     aa1: RistrettoPoint,
     cs: Vec<Scalar>,
     zs: Vec<Scalar>,
+}
+
+/// Serialize a signature
+#[wasm_bindgen]
+pub fn signature_to_ascii(sig: &Signature) -> JsValue {
+    let encoded: Vec<u8> = bincode::serialize(sig).unwrap();
+    return JsValue::from_str(&base64::encode(&encoded));
+}
+
+/// Deserialize a signature
+#[wasm_bindgen]
+pub fn ascii_to_signature(pubkey: &JsValue) -> Signature {
+    let encoded = base64::decode(pubkey.as_string().unwrap()).unwrap();
+    return bincode::deserialize(&encoded[..]).unwrap();
 }
 
 /// Denotes the ring of public keys which are being used for the ring signature, as well as the
