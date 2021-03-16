@@ -32,8 +32,8 @@ where
     // Make a bunch of keypairs
     let mut keypairs = Vec::new();
     for _ in 0..ring_size {
-        let kp = gen_keypair(&mut rng);
-        keypairs.push(kp);
+        let kp = gen_keypair();
+        keypairs.push((kp.private, kp.public));
     }
 
     // Clone out just the pubkeys

@@ -1,5 +1,7 @@
+use wasm_bindgen::prelude::*;
+
 use crate::{
-    key::{PrivateKey, PublicKey},
+    key::{PrivateKey, PublicKey, public_to_ascii, ascii_to_public},
     prelude::*,
 };
 
@@ -10,7 +12,6 @@ use curve25519_dalek::{
     constants::RISTRETTO_BASEPOINT_POINT, ristretto::RistrettoPoint, scalar::Scalar,
     traits::Identity,
 };
-use rand_core::{CryptoRng, RngCore};
 
 static DOMAIN_STR0: &'static [u8] = b"rust-ringsig-0";
 static DOMAIN_STR1: &'static [u8] = b"rust-ringsig-1";
@@ -18,6 +19,7 @@ static DOMAIN_STR2: &'static [u8] = b"rust-ringsig-2";
 
 /// A Fujisaki signature. The size of `Signature` scales proportionally with the number of public
 /// keys in the ring.
+#[wasm_bindgen]
 #[derive(Debug, Eq, PartialEq)]
 pub struct Signature {
     aa1: RistrettoPoint,
@@ -63,6 +65,11 @@ impl Tag {
         let h = Blake2b::with_params(b"", b"", DOMAIN_STR2);
         self.hash_self(h)
     }
+
+    fn sep(&self) -> (Vec<JsValue>, Vec<u8>) {
+        let vec: Vec<JsValue> = self.pubkeys.iter().map(|key| public_to_ascii(key)).collect::<Vec<JsValue>>();
+        return (vec, self.issue.to_vec());
+    }
 }
 
 // This routine is common to the verification and trace functions. It returns A₀ and the sigma
@@ -102,6 +109,15 @@ pub(crate) fn compute_sigma(
     (aa0, sigma)
 }
 
+pub fn sign(
+    msg: &[u8],
+    tag: &Tag,
+    privkey: &PrivateKey,
+) -> Signature {
+    let (pki, issue) = tag.sep();
+    return generate_signature(msg, pki, issue, privkey);
+}
+
 /// Sign a message under the given tag with the given private key.
 ///
 /// Example:
@@ -127,12 +143,22 @@ pub(crate) fn compute_sigma(
 /// let sig = sign(&mut rng, &*msg, &tag, &my_privkey);
 /// assert!(verify(&*msg, &tag, &sig));
 /// # }
-pub fn sign<R: RngCore + CryptoRng>(
-    rng: &mut R,
+#[wasm_bindgen]
+pub fn generate_signature(
     msg: &[u8],
-    tag: &Tag,
+    pki: Vec<JsValue>,
+    issue: Vec<u8>,
     privkey: &PrivateKey,
 ) -> Signature {
+    let mut rng = rand::thread_rng();
+
+    let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
+
+    let tag = Tag {
+        pubkeys: pubkeys,
+        issue: issue
+    };
+
     // Make sure the ring size isn't bigger than a u64
     let ring_size = tag.pubkeys.len();
     if u64::try_from(ring_size).is_err() {
@@ -186,15 +212,15 @@ pub fn sign<R: RngCore + CryptoRng>(
     let mut a: Vec<RistrettoPoint> = vec![RistrettoPoint::identity(); ring_size];
     let mut b: Vec<RistrettoPoint> = vec![RistrettoPoint::identity(); ring_size];
 
-    let w = Scalar::random(rng);
+    let w = Scalar::random(&mut rng);
 
     // aⱼ := wⱼG,  bⱼ := wⱼh
     a[privkey_idx] = &w * &RISTRETTO_BASEPOINT_POINT;
     b[privkey_idx] = &w * &h;
 
     for i in (0..ring_size).filter(|&j| j != privkey_idx) {
-        c[i] = Scalar::random(rng);
-        z[i] = Scalar::random(rng);
+        c[i] = Scalar::random(&mut rng);
+        z[i] = Scalar::random(&mut rng);
 
         // aᵢ := zᵢG * cᵢyᵢ,  bᵢ := zᵢh + cᵢσᵢ
         a[i] = {
@@ -252,8 +278,26 @@ pub fn sign<R: RngCore + CryptoRng>(
     }
 }
 
-/// Verify a message against a given signature under a given tag. See `sign` for example usage.
 pub fn verify(msg: &[u8], tag: &Tag, sig: &Signature) -> bool {
+    let (pki, issue) = tag.sep();
+    return verify_signature(msg, pki, issue, sig);
+}
+
+/// Verify a message against a given signature under a given tag. See `sign` for example usage.
+#[wasm_bindgen]
+pub fn verify_signature(
+    msg: &[u8],
+    pki: Vec<JsValue>,
+    issue: Vec<u8>,
+    sig: &Signature
+) -> bool {
+    let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
+
+    let tag = Tag {
+        pubkeys: pubkeys,
+        issue: issue
+    };
+
     let c = &sig.cs;
     let z = &sig.zs;
     let aa1 = sig.aa1; // A₁
@@ -261,7 +305,7 @@ pub fn verify(msg: &[u8], tag: &Tag, sig: &Signature) -> bool {
     // h := H(L)
     let h = RistrettoPoint::from_hash(tag.hash0());
 
-    let (aa0, sigma) = compute_sigma(msg, tag, sig);
+    let (aa0, sigma) = compute_sigma(msg, &tag, sig);
 
     // aᵢ := zᵢG * cᵢyᵢ
     let a: Vec<RistrettoPoint> = {
@@ -335,7 +379,7 @@ mod test {
         } = rand_ctx(&mut rng, 1);
         let privkey = remove_rand_privkey(&mut rng, &mut keypairs);
 
-        let sig = sign(&mut rng, &msg, &tag, &privkey);
+        let sig = sign(&msg, &tag, &privkey);
         assert!(verify(&msg, &tag, &sig));
     }
 
@@ -351,8 +395,8 @@ mod test {
         } = rand_ctx(&mut rng, 1);
         let privkey = remove_rand_privkey(&mut rng, &mut keypairs);
 
-        let sig1 = sign(&mut rng, &msg, &tag, &privkey);
-        let sig2 = sign(&mut rng, &msg, &tag, &privkey);
+        let sig1 = sign(&msg, &tag, &privkey);
+        let sig2 = sign(&msg, &tag, &privkey);
 
         assert!(sig1 != sig2);
     }
@@ -368,7 +412,8 @@ mod test {
             mut keypairs,
         } = rand_ctx(&mut rng, 1);
         let privkey = remove_rand_privkey(&mut rng, &mut keypairs);
-        let sig = sign(&mut rng, &msg, &tag, &privkey);
+
+        let sig = sign(&msg, &tag, &privkey);
 
         // Check that changing a byte of the message invalidates the signature
         let mut bad_msg = msg.clone();
@@ -389,11 +434,12 @@ mod test {
             mut keypairs,
         } = rand_ctx(&mut rng, 1);
         let privkey = remove_rand_privkey(&mut rng, &mut keypairs);
-        let sig = sign(&mut rng, &msg, &tag, &privkey);
+        let sig = sign(&msg, &tag, &privkey);
 
         // Check that changing a pubkey in the tag invalidates the signature
         let mut bad_tag = tag.clone();
-        let (_, new_pubkey) = gen_keypair(&mut rng);
+        let keypair = gen_keypair();
+        let new_pubkey = keypair.public;
         let pubkey_idx = rng.gen_range(0, tag.pubkeys.len());
         bad_tag.pubkeys[pubkey_idx] = new_pubkey;
         assert!(!verify(&msg, &bad_tag, &sig));

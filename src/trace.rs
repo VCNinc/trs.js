@@ -1,7 +1,9 @@
+use wasm_bindgen::prelude::*;
+
 use crate::{
-    key::PublicKey,
+    key::{PublicKey, ascii_to_public},
     prelude::*,
-    sig::{compute_sigma, Signature, Tag},
+    sig::{compute_sigma, Signature, Tag}
 };
 
 /// Encodes the relationship of two signatures
@@ -18,6 +20,31 @@ pub enum Trace<'a> {
     /// The same key was used to sign distinct messages under the same tag. `Revealed(p)` reveals
     /// that pubkey.
     Revealed(&'a PublicKey),
+}
+
+#[wasm_bindgen]
+pub fn trace_signature(
+    msg1: &[u8],
+    sig1: &Signature,
+    msg2: &[u8],
+    sig2: &Signature,
+    pki: Vec<JsValue>,
+    issue: Vec<u8>,
+) -> String {
+    let pubkeys: Vec<PublicKey> = pki.iter().map(|key| ascii_to_public(key)).collect::<Vec<PublicKey>>();
+
+    let tag = Tag {
+        pubkeys: pubkeys,
+        issue: issue
+    };
+
+    let tag = trace(msg1, sig1, msg2, sig2, &tag);
+
+    match tag {
+        Trace::Indep => String::from("indep"),
+        Trace::Linked => String::from("linked"),
+        Trace::Revealed(key) => base64::encode(&key.as_bytes())
+    }
 }
 
 /// Get a `Trace` object representing the relationship between the two provided signatures and
@@ -103,8 +130,8 @@ mod test {
         };
 
         // Sign the same message with distinct privkeys
-        let sig1 = sign(&mut rng, &msg, &tag, &privkey1);
-        let sig2 = sign(&mut rng, &msg, &tag, &privkey2);
+        let sig1 = sign(&msg, &tag, &privkey1);
+        let sig2 = sign(&msg, &tag, &privkey2);
         assert_eq!(trace(&msg, &sig1, &msg, &sig2, &tag), Trace::Indep);
     }
 
@@ -127,8 +154,8 @@ mod test {
         };
 
         // Sign the same message with the same privkey
-        let sig1 = sign(&mut rng, &msg, &tag, &privkey);
-        let sig2 = sign(&mut rng, &msg, &tag, &privkey);
+        let sig1 = sign(&msg, &tag, &privkey);
+        let sig2 = sign(&msg, &tag, &privkey);
 
         assert_eq!(trace(&msg, &sig1, &msg, &sig2, &tag), Trace::Linked);
     }
@@ -152,8 +179,8 @@ mod test {
         };
 
         // Sign distinct messages with the same privkey
-        let sig1 = sign(&mut rng, &msg1, &tag, &my_privkey);
-        let sig2 = sign(&mut rng, &msg2, &tag, &my_privkey);
+        let sig1 = sign(&msg1, &tag, &my_privkey);
+        let sig2 = sign(&msg2, &tag, &my_privkey);
 
         assert_eq!(
             trace(&msg1, &sig1, &msg2, &sig2, &tag),

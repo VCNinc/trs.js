@@ -1,12 +1,22 @@
+use wasm_bindgen::prelude::*;
+
 use crate::prelude::Vec;
 
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use rand_core::{CryptoRng, RngCore};
+
+/// A key pair
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, PartialEq, Copy)]
+pub struct KeyPair {
+    pub public: PublicKey,
+    pub private: PrivateKey
+}
 
 /// A public key
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, PartialEq, Copy)]
 pub struct PublicKey(pub(crate) RistrettoPoint);
 
 impl PublicKey {
@@ -30,7 +40,8 @@ impl PublicKey {
 }
 
 /// A private key
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[wasm_bindgen]
+#[derive(Clone, Debug, Eq, PartialEq, Copy)]
 pub struct PrivateKey(pub(crate) Scalar, pub(crate) RistrettoPoint);
 
 impl PrivateKey {
@@ -70,12 +81,31 @@ impl PrivateKey {
 }
 
 /// Generates a secure random keypair
-pub fn gen_keypair<R: CryptoRng + RngCore>(mut rng: R) -> (PrivateKey, PublicKey) {
+#[wasm_bindgen]
+pub fn gen_keypair() -> KeyPair {
+    let mut rng = rand::thread_rng();
     let s = Scalar::random(&mut rng);
     let pubkey = PublicKey(&s * &RISTRETTO_BASEPOINT_POINT);
     let privkey = PrivateKey(s, pubkey.0.clone());
 
-    (privkey, pubkey)
+    return KeyPair {
+        public: pubkey,
+        private: privkey
+    };
+}
+
+/// Serialize a public key
+#[wasm_bindgen]
+pub fn public_to_ascii(pubkey: &PublicKey) -> JsValue {
+    let encoded: Vec<u8> = pubkey.as_bytes();
+    return JsValue::from_str(&base64::encode(&encoded));
+}
+
+/// Deserialize a public key
+#[wasm_bindgen]
+pub fn ascii_to_public(pubkey: &JsValue) -> PublicKey {
+    let encoded = base64::decode(pubkey.as_string().unwrap()).unwrap();
+    return PublicKey::from_bytes(&encoded).unwrap();
 }
 
 #[cfg(test)]
@@ -84,8 +114,9 @@ mod test {
 
     #[test]
     fn test_key_serialization_correctness() {
-        let mut rng = rand::thread_rng();
-        let (privkey, pubkey) = gen_keypair(&mut rng);
+        let keypair = gen_keypair();
+        let privkey = keypair.private;
+        let pubkey = keypair.public;
 
         let pubkey_bytes = pubkey.as_bytes();
         assert_eq!(PublicKey::from_bytes(&*pubkey_bytes), Some(pubkey));
