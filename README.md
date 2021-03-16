@@ -41,7 +41,7 @@ Ported to WebAssembly by Vivek Nair: [VCNinc](https://github.com/VCNinc).
 
 ## License
 
-Licensed under the MIT license ([LICENSE-MIT](LICENSE-MIT)).
+Licensed under the MIT license ([LICENSE](LICENSE)).
 
 ## Warning
 
