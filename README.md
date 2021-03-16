@@ -1,4 +1,7 @@
 # trs.js
+[![GitHub issues](https://img.shields.io/github/issues/VCNinc/trs.js)](https://github.com/VCNinc/trs.js/issues)
+[![GitHub license](https://img.shields.io/github/license/VCNinc/trs.js)](https://github.com/VCNinc/trs.js/blob/master/LICENSE)
+[![NPM version](https://img.shields.io/npm/v/trs-js)](https://www.npmjs.com/package/trs-js)
 
 A port of [rozbb/fujisaki-ringsig](https://github.com/rozbb/fujisaki-ringsig) to WebAssembly for use in browsers and Node.js.
 
